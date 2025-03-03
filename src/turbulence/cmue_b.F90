@@ -37,7 +37,11 @@
 !
 !  number of vertical layers
    integer, intent(in)       :: nlev
-!
+
+!! !DEFINED PARAMETERS:
+   REALTYPE, parameter       :: asLimitFact=1.0d0
+   REALTYPE, parameter       :: anLimitFact=0.5d0
+
 ! !BUGS:
 ! Test stage. Do not yet use.
 !
@@ -54,6 +58,9 @@
      REALTYPE                ::   n0,n1,n2,n3,nt0,nt1,nt2
      REALTYPE                ::   gam0,gam1,gam2
      REALTYPE                ::   dCm,nCm,nCmp,nGam,cm3_inv
+     REALTYPE                ::   asMax,asMaxNum,asMaxDen
+     REALTYPE                ::   anMin,anMinNum,anMinDen
+
 
 !-----------------------------------------------------------------------
 !BOC
@@ -85,7 +92,24 @@
 
      cm3_inv = 1./cm0**3.
 
+ !   mininum value of "an" to insure that "as" > 0 in equilibrium
+     anMinNum  = -(d1 + nt0) + sqrt((d1+nt0)**2. - 4.*d0*(d4+nt1))
+     anMinDen  = 2.*(d4+nt1)
+     anMin     = anMinNum / anMinDen
+
      do i=1,nlev-1
+
+
+!       clip an at minimum value
+        an(i) = max(an(i),anLimitFact*anMin)
+
+!       compute maximum as for shear instability
+        asMaxNum  = d0*n0 + (d0*n1+d1*n0)*an(i) + (d1*n1+d4*n0)*an(i)*an(i) + d4*n1*an(i)*an(i)*an(i)
+        asMaxDen  = d2*n0 + (d2*n1+d3*n0)*an(i) + d3*n1*an(i)*an(i)
+        asMax     = asMaxNum / asMaxDen
+
+!       clip as at miximum value
+        as(i) = min(as(i),asLimitFact*asMax)
 
         dCm  =  d0  +  d1*an(i) +  d2*as(i) + d3*an(i)*as(i) + d4*an(i)*an(i) + d5*as(i)*as(i)
         nCm  =  n0  +  n1*an(i) +  n2*as(i) + n3*at(i)

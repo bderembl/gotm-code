@@ -40,9 +40,9 @@
 
 !
 ! !USES:
-   use turbulence,   only: Pb,epsb,nuh
+   use turbulence,   only: Pb,epsb,nuh,num
    use turbulence,   only: kb,kb_min
-   use turbulence,   only: k_ubc, k_lbc, ubc_type, lbc_type
+   use turbulence,   only: kb_ubc, kb_lbc, ubc_type, lbc_type
    use util,         only: Dirichlet,Neumann
 
    IMPLICIT NONE
@@ -90,7 +90,7 @@
 !BOC
 !
 !  compute diffusivity
-   avh = nuh
+   avh = num
 
    do i=1,nlev-1
 
@@ -111,7 +111,7 @@
 
 
 !  position for upper BC
-   if (k_ubc.eq.Neumann) then
+   if (kb_ubc.eq.Neumann) then
 !     flux at center "nlev"
       pos_bc = 0.5*h(nlev)
    else
@@ -124,7 +124,7 @@
 
 
 !  position for lower BC
-   if (k_lbc.eq.Neumann) then
+   if (kb_lbc.eq.Neumann) then
 !     flux at center "1"
       pos_bc = 0.5*h(1)
    else
@@ -137,7 +137,7 @@
 
 
 !  do diffusion step
-   call diff_face(nlev,dt,cnpar,h,k_ubc,k_lbc,                          &
+   call diff_face(nlev,dt,cnpar,h,kb_ubc,kb_lbc,                          &
                   DiffKbup,DiffKbdw,avh,Lsour,Qsour,kb)
 
 

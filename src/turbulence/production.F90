@@ -65,6 +65,7 @@
 ! !USES:
    use turbulence, only: P,B,Pb,Px,PSTK
    use turbulence, only: num,nuh, nucl
+   use turbulence, only: gamb
    use turbulence, only: alpha,iw_model
    IMPLICIT NONE
 !
@@ -106,7 +107,7 @@
 
    do i=0,nlev
       P(i)    =  num(i)*( SS(i)+alpha_eff*NN(i) )
-      B(i)    = -nuh(i)*NN(i)
+      B(i)    = -nuh(i)*NN(i) + gamb(i)
       Pb(i)   = -  B(i)*NN(i)
    end do
 

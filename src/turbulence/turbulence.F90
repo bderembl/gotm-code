@@ -446,8 +446,8 @@
    const_nuh=5.0e-4
    k_min=1.0e-8
    eps_min=1.0e-12
-   kb_min=1.0e-8
-   epsb_min=1.0e-12
+   kb_min=1.0e-14
+   epsb_min=1.0e-16
 
 !  the 'generic' namelist
    compute_param=.false.
@@ -674,9 +674,9 @@
    call twig%get(eps_min, 'eps_min', 'minimum dissipation rate', 'm^2/s^3', &
                    minimum=0._rk,default=1.e-12_rk)
    call twig%get(kb_min, 'kb_min', 'minimum buoyancy variance', 'm^2/s^4', &
-                   minimum=0._rk,default=1.e-10_rk)
-   call twig%get(epsb_min, 'epsb_min', 'minimum buoyancy variance destruction rate', 'm^2/s^5', &
                    minimum=0._rk,default=1.e-14_rk)
+   call twig%get(epsb_min, 'epsb_min', 'minimum buoyancy variance destruction rate', 'm^2/s^5', &
+                   minimum=0._rk,default=1.e-16_rk)
 
    twig => branch%get_child('generic', 'generic length scale (GLS) model')
    call twig%get(compute_param, 'compute_param', 'compute the model parameters', &
@@ -769,7 +769,7 @@
 
    twig => branch%get_child('scnd', 'second-order model')
    call twig%get(scnd_method, 'method', 'method', &
-                   options=(/option(quasi_eq, 'quasi-equilibrium', 'quasi_eq'), option(weak_eq_kb_eq, 'weak equilibrium with algebraic buoyancy variance', 'weak_eq_kb_eq'),option(quasi_eq_h15, 'quasi-equilibrium with Langmuir (Harcourt, 2015)', 'quasi_eq_h15')/), default=weak_eq_kb_eq)
+                   options=(/option(quasi_eq, 'quasi-equilibrium', 'quasi_eq'), option(weak_eq_kb_eq, 'weak equilibrium with algebraic buoyancy variance', 'weak_eq_kb_eq'), option(weak_eq_kb, 'weak equilibrium with equation for buoyancy variance', 'weak_eq_kb'), option(quasi_eq_h15, 'quasi-equilibrium with Langmuir (Harcourt, 2015)', 'quasi_eq_h15')/), default=weak_eq_kb_eq)
    call twig%get(kb_method, 'kb_method', 'equation for buoyancy variance', &
                    options=(/option(kb_algebraic, 'algebraic', 'algebraic'), option(kb_dynamic, 'prognostic', 'prognostic')/), default=1, display=display_advanced)
    call twig%get(epsb_method, 'epsb_method', 'equation for variance destruction', &
@@ -2625,10 +2625,14 @@
 
       case (weak_Eq_Kb)
 
-      STDERR 'This second-order model is not yet tested.'
-      STDERR 'Choose scnd_method=1,2 in gotmturb.nml.'
-      STDERR 'Program execution stopped ...'
-      stop 'turbulence.F90'
+         call alpha_mnb(nlev,NN,SS)
+         call cmue_b(nlev)
+         call do_tke(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call do_kb(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call do_lengthscale(nlev,dt,depth,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call do_epsb(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call alpha_mnb(nlev,NN,SS)
+         call kolpran(nlev)
 
       case (quasi_Eq_H15)
          ! quasi-equilibrium model
@@ -2919,6 +2923,8 @@
 !  at the boundaries is processed.
 !
 ! !USES:
+   use density,    only: alpha,beta
+   use meanflow,   only: gravity
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -2948,6 +2954,12 @@
       nus(i)   =  cmue2(i)*x
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
+!     Buoyancy Non local term
+      gamb(i)   =  gam(i)*eps(i)
+!     non-local heat
+      gamh(i)  = gamb(i)/(alpha(i)*gravity)
+!     TODO: non-local salt
+!      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
    end do
 
    return
