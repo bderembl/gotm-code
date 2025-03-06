@@ -32,7 +32,7 @@
 ! does not happen, see \cite{UmlaufBurchard2005a}.
 !
 ! !USES:
-   use turbulence, only: an,as,at
+   use turbulence, only: an,as
    use turbulence, only: cmue1,cmue2
    use turbulence, only: cm0
    use turbulence, only: cc1

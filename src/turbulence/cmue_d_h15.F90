@@ -33,7 +33,7 @@
 ! the algebraic models as well as in the vortex production of TKE and L or epsilon
 !
 ! !USES:
-   use turbulence, only: an,as,at
+   use turbulence, only: an,as
 ! nondimensional forcing functions for Eulerian shear dot Stokes shear, and Stokes shear squared:
 ! Also, surface proximity function SPF=(1-fzs), goes to zero at surface as tanh(0.25*z/l_S) where l_S
 ! the vortex-production-weighted dissipation length scale

@@ -61,6 +61,8 @@
 !  see section \ref{sec:advectionMean} on page \pageref{sec:advectionMean}.
 !
 ! !USES:
+   use density,      only: beta
+   use meanflow,     only: gravity
    use meanflow,     only: avmols
    use meanflow,     only: h,u,v,w,S,avh
    use meanflow,     only: Sobs
@@ -110,6 +112,7 @@
    REALTYPE                  :: AdvSup,AdvSdw
    REALTYPE                  :: Lsour(0:nlev)
    REALTYPE                  :: Qsour(0:nlev)
+   REALTYPE                  :: gams_dim(0:nlev)
 !-----------------------------------------------------------------------
 !BOC
 !
@@ -129,13 +132,20 @@
       avh(i)=nus(i)+avmolS
    end do
 
+
+!     compute dimentional non-local term
+   do i=0,nlev
+      gams_dim(i) = gams(i)/(-beta(i)*gravity)
+   end do
+
+
 !  add contributions to source term
    Lsour=_ZERO_
    Qsour=_ZERO_
 
    do i=1,nlev
 !     from non-local turbulence
-      Qsour(i) = Qsour(i) - ( gams(i) - gams(i-1) )/h(i)
+      Qsour(i) = Qsour(i) - ( gams_dim(i) - gams_dim(i-1) )/h(i)
    end do
 
 !  ... and from lateral advection

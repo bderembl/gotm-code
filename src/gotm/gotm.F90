@@ -58,7 +58,7 @@
    use turbulence,  only: init_turbulence,post_init_turbulence,do_turbulence
    use turbulence,  only: num,nuh,nus, nucl
    use turbulence,  only: const_num,const_nuh
-   use turbulence,  only: gamu,gamv,gamh,gams
+   use turbulence,  only: gamu,gamv,gamt,gams
    use turbulence,  only: Rig
    use turbulence,  only: kappa
    use turbulence,  only: clean_turbulence
@@ -822,7 +822,7 @@
          call salinity(nlev,dt,cnpar,swf,ssf,nus,gams)
       endif
       if (tprof_input%method .ne. 0) then
-         call temperature(nlev,dt,cnpar,I_0%value,swf,shf,nuh,gamh,rad)
+         call temperature(nlev,dt,cnpar,I_0%value,swf,shf,nuh,gamt,rad)
       endif
 !GSW
    select case (density_method)
@@ -904,10 +904,10 @@
 !        update one-point models
 # ifdef _SEAGRASS_
          call do_turbulence(nlev,dt,depth,u_taus,u_taub,z0s,z0b,h,      &
-                            NN,SS,xP, SSCSTK=SSCSTK, SSSTK=SSSTK)
+                            NN,NNt,NNs,SS,xP,SSCSTK=SSCSTK, SSSTK=SSSTK)
 # else
          call do_turbulence(nlev,dt,depth,u_taus,u_taub,z0s,z0b,h,      &
-                            NN,SS, SSCSTK=SSCSTK, SSSTK=SSSTK)
+                            NN,NNt,NNs,SS, SSCSTK=SSCSTK, SSSTK=SSSTK)
 # endif
       end select
 

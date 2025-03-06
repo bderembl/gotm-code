@@ -5,7 +5,7 @@
 ! !ROUTINE: The temperature equation \label{sec:temperature}
 !
 ! !INTERFACE:
-   subroutine temperature(nlev,dt,cnpar,I_0,wflux,hflux,nuh,gamh,rad)
+   subroutine temperature(nlev,dt,cnpar,I_0,wflux,hflux,nuh,gamt,rad)
 !
 ! !DESCRIPTION:
 ! This subroutine computes the balance of heat in the form
@@ -66,6 +66,8 @@
 !
 ! !USES:
    use density,      only: rho0,cp
+   use density,      only: alpha
+   use meanflow,     only: gravity
    use meanflow,     only: avmolt
    use meanflow,     only: h,u,v,w,T,S,avh
    use meanflow,     only: Tobs
@@ -108,7 +110,7 @@
    REALTYPE, intent(in)                :: nuh(0:nlev)
 
 !  non-local heat flux (Km/s)
-   REALTYPE, intent(in)                :: gamh(0:nlev)
+   REALTYPE, intent(in)                :: gamt(0:nlev)
 
 ! !OUTPUT PARAMETERS:
 !  shortwave radiation profile (W/m^2)
@@ -129,6 +131,7 @@
    REALTYPE                  :: AdvTup,AdvTdw
    REALTYPE                  :: Lsour(0:nlev)
    REALTYPE                  :: Qsour(0:nlev)
+   REALTYPE                  :: gamt_dim(0:nlev)
    REALTYPE                  :: z
 !-----------------------------------------------------------------------
 !BOC
@@ -170,6 +173,11 @@
    end do
 
 
+!     compute dimentional non-local term
+   do i=0,nlev
+      gamt_dim(i) = gamt(i)/(alpha(i)*gravity)
+   end do
+
 !  add contributions to source term
    Lsour=_ZERO_
    Qsour=_ZERO_
@@ -182,7 +190,7 @@
 
    do i=1,nlev
 !     from non-local turbulence
-      Qsour(i) = Qsour(i) - ( gamh(i) - gamh(i-1) )/h(i)
+      Qsour(i) = Qsour(i) - ( gamt_dim(i) - gamt_dim(i-1) )/h(i)
    end do
 
 !  ... and from lateral advection

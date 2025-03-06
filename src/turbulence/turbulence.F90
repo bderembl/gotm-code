@@ -58,9 +58,15 @@
 !  buoyancy variance and its destruction
    REALTYPE, public, dimension(:), allocatable   :: kb,epsb
 
+!  temperature variance and its destruction
+   REALTYPE, public, dimension(:), allocatable   :: kt,epst
+
+!  salinity variance and its destruction
+   REALTYPE, public, dimension(:), allocatable   :: ks,epss
+
 !  shear and buoyancy production
 !  of tke and buoyancy variance
-   REALTYPE, public, dimension(:), allocatable   :: P,B,Pb
+   REALTYPE, public, dimension(:), allocatable   :: P,B,Pb,Pt,Ps
 
 !  extra production term
    REALTYPE, public, dimension(:), allocatable   :: Px
@@ -84,7 +90,7 @@
 
 !  non-local fluxes
 !  of buoyancy, temperature, salinity
-   REALTYPE, public, dimension(:), allocatable   :: gamb,gamh,gams
+   REALTYPE, public, dimension(:), allocatable   :: gamb,gamt,gams
 
 !  non-dimensional  stability functions
    REALTYPE, public, dimension(:), allocatable   :: cmue1,cmue2, cmue3
@@ -96,7 +102,7 @@
    REALTYPE, public, dimension(:), allocatable   :: gam
 
 !  alpha_M, alpha_N, and alpha_B
-   REALTYPE, public, dimension(:), allocatable   :: as,an,at
+   REALTYPE, public, dimension(:), allocatable   :: as,an,ab
 
 !  alpha_V, alpha_W
 !  dimensionless Stokes-Eulerian cross-shear and Stokes shear^2
@@ -137,6 +143,10 @@
    integer, public                               :: k_lbc
    integer, public                               :: kb_ubc
    integer, public                               :: kb_lbc
+   integer, public                               :: kt_ubc
+   integer, public                               :: kt_lbc
+   integer, public                               :: ks_ubc
+   integer, public                               :: ks_lbc
    integer, public                               :: psi_ubc
    integer, public                               :: psi_lbc
    integer, public                               :: ubc_type
@@ -158,6 +168,10 @@
    REALTYPE, public                              :: eps_min
    REALTYPE, public                              :: kb_min
    REALTYPE, public                              :: epsb_min
+   REALTYPE, public                              :: kt_min
+   REALTYPE, public                              :: epst_min
+   REALTYPE, public                              :: ks_min
+   REALTYPE, public                              :: epss_min
 
 !  the 'generic' namelist
    logical                                       :: compute_param
@@ -185,6 +199,8 @@
    REALTYPE, public                              :: ce4
    REALTYPE, public                              :: sig_k
    REALTYPE, public                              :: sig_e
+   REALTYPE, public                              :: sig_t
+   REALTYPE, public                              :: sig_s
    logical,  public                              :: sig_peps
 
 !  the 'kw' namelist
@@ -278,6 +294,7 @@
 !  method to solve equation for k_b
    integer, parameter                            :: kb_algebraic=1
    integer, parameter                            :: kb_dynamic=2
+   integer, parameter                            :: kb_dynamic_ts=3
 
 !  method to solve equation for epsilon_b
    integer, parameter                            :: epsb_algebraic=1
@@ -357,6 +374,7 @@
                             len_scale_method,stab_method
 
    namelist /bc/            k_ubc,k_lbc,kb_ubc,kb_lbc,         &
+                            kt_ubc,kt_lbc,ks_ubc,ks_lbc,       &                      
                             psi_ubc,psi_lbc,                   &
                             ubc_type,lbc_type
 
@@ -364,7 +382,8 @@
                             compute_kappa,kappa,               &
                             compute_c3,ri_st,length_lim,galp,  &
                             const_num,const_nuh,k_min,eps_min, &
-                            kb_min,epsb_min
+                            kb_min,epsb_min,kt_min,epst_min,   &
+                            ks_min,epss_min
 
    namelist /generic/       compute_param,gen_m,gen_n,gen_p,   &
                             cpsi1,cpsi2,cpsi3minus,cpsi3plus,cpsix,cpsi4, &
@@ -372,7 +391,7 @@
                             gen_d,gen_alpha,gen_l
 
    namelist /keps/          ce1,ce2,ce3minus,ce3plus,cex,ce4,  &
-                            sig_k,sig_e,sig_peps
+                            sig_k,sig_e,sig_t,sig_s,sig_peps
 
    namelist /kw/            cw1,cw2,cw3minus,cw3plus,cwx,cw4,  &
                             sig_kw,sig_w   
@@ -427,6 +446,10 @@
    k_lbc=1
    kb_ubc=1
    kb_lbc=1
+   kt_ubc=0
+   kt_lbc=0
+   ks_ubc=0
+   ks_lbc=0
    psi_ubc=1
    psi_lbc=1
    ubc_type=1
@@ -448,6 +471,10 @@
    eps_min=1.0e-12
    kb_min=1.0e-14
    epsb_min=1.0e-16
+   kt_min=1.0e-14
+   epst_min=1.0e-16
+   ks_min=1.0e-14
+   epss_min=1.0e-16
 
 !  the 'generic' namelist
    compute_param=.false.
@@ -475,6 +502,8 @@
    ce4=_ZERO_
    sig_k=1.0
    sig_e=1.3
+   sig_t=1.0
+   sig_s=1.0
    sig_peps=.false.
 
 !  the 'kw' namelist
@@ -677,6 +706,14 @@
                    minimum=0._rk,default=1.e-14_rk)
    call twig%get(epsb_min, 'epsb_min', 'minimum buoyancy variance destruction rate', 'm^2/s^5', &
                    minimum=0._rk,default=1.e-16_rk)
+   call twig%get(kt_min, 'kt_min', 'minimum temperature variance', 'm^2/s^4', &
+                   minimum=0._rk,default=1.e-14_rk)
+   call twig%get(epst_min, 'epst_min', 'minimum temperature variance destruction rate', 'm^2/s^5', &
+                   minimum=0._rk,default=1.e-16_rk)
+   call twig%get(ks_min, 'ks_min', 'minimum salinity variance', 'm^2/s^4', &
+                   minimum=0._rk,default=1.e-14_rk)
+   call twig%get(epss_min, 'epss_min', 'minimum salinity variance destruction rate', 'm^2/s^5', &
+                   minimum=0._rk,default=1.e-16_rk)
 
    twig => branch%get_child('generic', 'generic length scale (GLS) model')
    call twig%get(compute_param, 'compute_param', 'compute the model parameters', &
@@ -727,6 +764,10 @@
                    default=1.0_rk)
    call twig%get(sig_e, 'sig_e', 'Schmidt number for dissipation diffusivity', '-', &
                    default=1.3_rk)
+   call twig%get(sig_t, 'sig_t', 'Schmidt number for kt diffusivity', '-', &
+                   default=1.0_rk)
+   call twig%get(sig_s, 'sig_s', 'Schmidt number for ks diffusivity', '-', &
+                   default=1.0_rk)
    call twig%get(sig_peps, 'sig_peps', 'use Burchard (2001) wave breaking parameterisation', &
                  default=.false.)
    
@@ -771,7 +812,7 @@
    call twig%get(scnd_method, 'method', 'method', &
                    options=(/option(quasi_eq, 'quasi-equilibrium', 'quasi_eq'), option(weak_eq_kb_eq, 'weak equilibrium with algebraic buoyancy variance', 'weak_eq_kb_eq'), option(weak_eq_kb, 'weak equilibrium with equation for buoyancy variance', 'weak_eq_kb'), option(quasi_eq_h15, 'quasi-equilibrium with Langmuir (Harcourt, 2015)', 'quasi_eq_h15')/), default=weak_eq_kb_eq)
    call twig%get(kb_method, 'kb_method', 'equation for buoyancy variance', &
-                   options=(/option(kb_algebraic, 'algebraic', 'algebraic'), option(kb_dynamic, 'prognostic', 'prognostic')/), default=1, display=display_advanced)
+                   options=(/option(kb_algebraic, 'algebraic', 'algebraic'), option(kb_dynamic, 'prognostic', 'prognostic'), option(kb_dynamic_ts, 'prognostic_ts', 'prognostic_ts')/), default=1, display=display_advanced)
    call twig%get(epsb_method, 'epsb_method', 'equation for variance destruction', &
                    options=(/option(epsb_algebraic, 'algebraic', 'algebraic')/), default=epsb_algebraic, display=display_advanced)
    call twig%get(scnd_coeff, 'scnd_coeff', 'coefficients of second-order model', &
@@ -926,6 +967,22 @@
    if (rc /= 0) stop 'init_turbulence: Error allocating (epsb)'
    epsb = epsb_min
 
+   allocate(kt(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (kt)'
+   kt = kt_min
+
+   allocate(epst(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (epst)'
+   epst = epst_min
+
+   allocate(ks(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (ks)'
+   ks = ks_min
+
+   allocate(epss(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (epss)'
+   epss = epss_min
+
    allocate(P(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (P)'
    P = _ZERO_
@@ -941,6 +998,14 @@
    allocate(Px(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (Px)'
    Px = _ZERO_
+
+   allocate(Pt(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (Pt)'
+   Pt = _ZERO_
+
+   allocate(Ps(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (Ps)'
+   Ps = _ZERO_
 
    ! Stokes production
    allocate(PSTK(0:nlev),stat=rc)
@@ -975,9 +1040,9 @@
    if (rc /= 0) stop 'init_turbulence: Error allocating (gamb)'
    gamb = _ZERO_
 
-   allocate(gamh(0:nlev),stat=rc)
-   if (rc /= 0) stop 'init_turbulence: Error allocating (gamh)'
-   gamh = _ZERO_
+   allocate(gamt(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (gamt)'
+   gamt = _ZERO_
 
    allocate(gams(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (gams)'
@@ -1015,9 +1080,9 @@
    if (rc /= 0) stop 'init_turbulence: Error allocating (as)'
    as = _ZERO_
 
-   allocate(at(0:nlev),stat=rc)
-   if (rc /= 0) stop 'init_turbulence: Error allocating (at)'
-   at = _ZERO_
+   allocate(ab(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (ab)'
+   ab = _ZERO_
 
    allocate(av(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (av)'
@@ -2334,6 +2399,8 @@
          LEVEL3 'ce4                                  =', ce4
          LEVEL3 'sig_k                                =', sig_k
          LEVEL3 'sig_e                                =', sig_e
+         LEVEL3 'sig_t                                =', sig_t
+         LEVEL3 'sig_s                                =', sig_s
          LEVEL2 ' '
          LEVEL3 'Value of the stability function'
          LEVEL3 'in the log-law,                   cm0 =', cm0
@@ -2443,7 +2510,7 @@
 !
 ! !INTERFACE:
    subroutine do_turbulence(nlev,dt,depth,u_taus,u_taub,z0s,z0b,h,      &
-                            NN,SS,xP, SSCSTK, SSSTK)
+                            NN,NNt, NNs, SS,xP, SSCSTK, SSSTK)
 !
 ! !DESCRIPTION: This routine is the central point of the
 ! turbulence scheme. It determines the order, in which
@@ -2499,9 +2566,11 @@
    IMPLICIT NONE
 
    interface
-      subroutine production(nlev,NN,SS,xP, SSCSTK, SSSTK)
+      subroutine production(nlev,NN,NNt,NNs,SS,xP, SSCSTK, SSSTK)
         integer,  intent(in)                :: nlev
         REALTYPE, intent(in)                :: NN(0:nlev)
+        REALTYPE, intent(in)                :: NNt(0:nlev)
+        REALTYPE, intent(in)                :: NNs(0:nlev)
         REALTYPE, intent(in)                :: SS(0:nlev)
         REALTYPE, intent(in), optional      :: xP(0:nlev)
         REALTYPE, intent(in), optional      :: SSCSTK(0:nlev)
@@ -2543,6 +2612,8 @@
 
 !  boyancy frequency squared (1/s^2)
    REALTYPE, intent(in)                :: NN(0:nlev)
+   REALTYPE, intent(in)                :: NNt(0:nlev)
+   REALTYPE, intent(in)                :: NNs(0:nlev)
 
 !  shear-frequency squared (1/s^2)
    REALTYPE, intent(in)                :: SS(0:nlev)
@@ -2562,6 +2633,11 @@
 !                      Lars Umlauf
 !
 !EOP
+! !LOCAL VARIABLES:
+   integer                   :: i
+   REALTYPE                  :: x
+
+
 !-------------------------------------------------------------------------
 !BOC
 
@@ -2582,7 +2658,7 @@
 !  solve a model for tke, length scale
 !  empirical stability function
 
-      call production(nlev,NN,SS, xP=xP, SSCSTK=SSCSTK, SSSTK=SSSTK)
+      call production(nlev,NN,NNt,NNs, SS, xP=xP, SSCSTK=SSCSTK, SSSTK=SSSTK)
 
       call alpha_mnb(nlev,NN,SS)
       call stabilityfunctions(nlev)
@@ -2597,7 +2673,7 @@
 
 !  solve a model for the second moments
 
-      call production(nlev,NN,SS, xP=xP, SSCSTK=SSCSTK, SSSTK=SSSTK)
+      call production(nlev,NN,NNt,NNs, SS, xP=xP, SSCSTK=SSCSTK, SSSTK=SSSTK)
 
       select case(scnd_method)
       case (quasi_Eq)
@@ -2754,6 +2830,8 @@
    REALTYPE, intent(in)                :: h(0:nlev)
    REALTYPE, intent(in)                :: NN(0:nlev),SS(0:nlev)
 !
+! !LOCAL VARIABLES:
+   integer                   :: i
 ! !REVISION HISTORY:
 !  Original author(s): Lars Umlauf
 !
@@ -2764,7 +2842,32 @@
       case(kb_algebraic)
          call kbalgebraic(nlev)
       case(kb_dynamic)
+
+         if (scnd_method.eq.Weak_Eq_Kb) then
+            STDERR 'With non equilibrium kb, it is better to set'
+            STDERR 'kb_method = prognostic_ts'
+            STDERR 'Please change gotmturb.nml accordingly.'
+            STDERR 'Program aborts now in turbulence.F90'
+            stop
+         end if
+
          call kbeq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+      case(kb_dynamic_ts)
+
+         call kteq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call kseq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+
+         !TODO add T'S' here
+         do i=0,nlev
+           kb(i) = kt(i) + ks(i)
+         enddo
+         
+         !  clip at k_min
+         do i=0,nlev
+           kb(i) = max(kb(i),kb_min)
+         enddo
+
+
       case default
 
       STDERR '... not a valid method to compute kb'
@@ -2878,6 +2981,8 @@
       case(epsb_algebraic)
 
          call epsbalgebraic(nlev)
+         call epstalgebraic(nlev)
+         call epssalgebraic(nlev)
 
       case(epsb_dynamic)
 
@@ -2923,8 +3028,8 @@
 !  at the boundaries is processed.
 !
 ! !USES:
-   use density,    only: alpha,beta
-   use meanflow,   only: gravity
+!   use density,    only: alpha,beta
+!   use meanflow,   only: gravity
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -2939,6 +3044,11 @@
 ! !LOCAL VARIABLES:
    integer                   :: i
    REALTYPE                  :: x
+
+! temporary
+   REALTYPE                  :: nuh2(0:nlev),num2(0:nlev)
+
+
 !
 !-----------------------------------------------------------------------
 !BOC
@@ -2955,12 +3065,15 @@
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
 !     Buoyancy Non local term
-      gamb(i)   =  gam(i)*eps(i)
+      gamb(i)   =  eps(i)*gam(i)
+      !TODO: add T'S' here in gamt and gams
 !     non-local heat
-      gamh(i)  = gamb(i)/(alpha(i)*gravity)
-!     TODO: non-local salt
+      gamt(i)  = gamb(i)*kt(i)/kb(i)
+!     non-local salt
+      gams(i)  = gamb(i)*ks(i)/kb(i)
 !      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
    end do
+
 
    return
    end subroutine kolpran
@@ -4009,10 +4122,16 @@
    if (allocated(L)) deallocate(L)
    if (allocated(kb)) deallocate(kb)
    if (allocated(epsb)) deallocate(epsb)
+   if (allocated(kt)) deallocate(kt)
+   if (allocated(epst)) deallocate(epst)
+   if (allocated(ks)) deallocate(ks)
+   if (allocated(epss)) deallocate(epss)
    if (allocated(P)) deallocate(P)
    if (allocated(B)) deallocate(B)
    if (allocated(Pb)) deallocate(Pb)
    if (allocated(Px)) deallocate(Px)
+   if (allocated(Pt)) deallocate(Pt)
+   if (allocated(Ps)) deallocate(Ps)
    if (allocated(PSTK)) deallocate(PSTK)
    if (allocated(num)) deallocate(num)
    if (allocated(nuh)) deallocate(nuh)
@@ -4021,7 +4140,7 @@
    if (allocated(gamu)) deallocate(gamu)
    if (allocated(gamv)) deallocate(gamv)
    if (allocated(gamb)) deallocate(gamb)
-   if (allocated(gamh)) deallocate(gamh)
+   if (allocated(gamt)) deallocate(gamt)
    if (allocated(gams)) deallocate(gams)
    if (allocated(cmue1)) deallocate(cmue1)
    if (allocated(cmue2)) deallocate(cmue2)
@@ -4031,7 +4150,7 @@
    if (allocated(gam)) deallocate(gam)
    if (allocated(an)) deallocate(an)
    if (allocated(as)) deallocate(as)
-   if (allocated(at)) deallocate(at)
+   if (allocated(ab)) deallocate(ab)
    if (allocated(av)) deallocate(av)
    if (allocated(aw)) deallocate(aw)
    if (allocated(SPF)) deallocate(SPF)
@@ -4076,7 +4195,7 @@
    LEVEL2 'P,B,Pb,Px,PSTK',P,B,Pb,Px, PSTK
    LEVEL2 'num,nuh,nus,nucl',num,nuh,nus, nucl
    LEVEL2 'gamu,gamv',gamu,gamv
-   LEVEL2 'gamb,gamh,gams',gamb,gamh,gams
+   LEVEL2 'gamb,gamt,gams',gamb,gamt,gams
    LEVEL2 'cmue1,cmue2,cmue3',cmue1,cmue2, cmue3
    LEVEL2 'gam',gam
    LEVEL2 'as,an,at',as,an,at
@@ -4094,6 +4213,7 @@
                             len_scale_method,stab_method
 
    LEVEL2 'bc namelist',    k_ubc,k_lbc,kb_ubc,kb_lbc,         &
+                            kt_ubc,kt_lbc,ks_ubc,ks_lbc,         &
                             psi_ubc,psi_lbc,                   &
                             ubc_type,lbc_type
 
@@ -4101,7 +4221,8 @@
                             compute_kappa,kappa,               &
                             compute_c3,ri_st,length_lim,galp,  &
                             const_num,const_nuh,k_min,eps_min, &
-                            kb_min,epsb_min
+                            kb_min,epsb_min,kt_min,epst_min,   &
+                            ks_min,epss_min
 
    LEVEL2 'generic namelist', compute_param,gen_m,gen_n,gen_p, &
                             cpsi1,cpsi2,cpsi3minus,cpsi3plus,  &
@@ -4109,7 +4230,7 @@
                             gen_d,gen_alpha,gen_l
 
    LEVEL2 'keps namelist',  ce1,ce2,ce3minus,ce3plus,cex,ce4,  &
-                            sig_k,sig_e,sig_peps
+                            sig_k,sig_e,sig_t,sig_s,sig_peps
 
    LEVEL2 'kw namelist',    cw1,cw2,cw3minus,cw3plus,cwx,cw4,  &
                             sig_kw,sig_w

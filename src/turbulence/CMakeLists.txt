@@ -12,12 +12,16 @@ add_library(turbulence
    compute_rist.F90
    dissipationeq.F90
    omegaeq.F90   
+   epstalgebraic.F90
+   epssalgebraic.F90
    epsbalgebraic.F90
    fk_craig.F90
    genericeq.F90
    gotm_lib_version.F90
    internal_wave.F90
    kbalgebraic.F90
+   kteq.F90
+   kseq.F90
    kbeq.F90
    lengthscaleeq.F90
    potentialml.F90

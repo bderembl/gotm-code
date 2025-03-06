@@ -21,7 +21,7 @@
 !
 ! !USES:
   use turbulence,  only:     tke,eps,kb
-  use turbulence,  only:     as,an,at
+  use turbulence,  only:     as,an,ab
   use turbulence,  only:     av, aw
   IMPLICIT NONE
 !
@@ -51,11 +51,11 @@
       tau2(i) = tke(i)*tke(i) / ( eps(i)*eps(i) )
       as(i)   = tau2(i) * SS(i)
       an(i)   = tau2(i) * NN(i)
-      at(i)   = tke(i)/eps(i) * kb(i)/eps(i)
+      ab(i)   = tke(i)/eps(i) * kb(i)/eps(i)
 
 !     clip negative values
       as(i) = max(as(i),1.e-10*_ONE_)
-      at(i) = max(at(i),1.e-10*_ONE_)
+      ab(i) = max(ab(i),1.e-10*_ONE_)
    end do
 
    if (present(SSCSTK) .and. present(SSSTK)) then

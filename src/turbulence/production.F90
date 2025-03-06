@@ -5,7 +5,7 @@
 ! !ROUTINE: Update turbulence production\label{sec:production}
 !
 ! !INTERFACE:
-   subroutine production(nlev,NN,SS,xP, SSCSTK, SSSTK)
+   subroutine production(nlev,NN,NNt,NNs,SS,xP, SSCSTK, SSSTK)
 !
 ! !DESCRIPTION:
 !  This subroutine calculates the production terms of turbulent kinetic
@@ -64,8 +64,9 @@
 !
 ! !USES:
    use turbulence, only: P,B,Pb,Px,PSTK
+   use turbulence, only: Pt,Ps   
    use turbulence, only: num,nuh, nucl
-   use turbulence, only: gamb
+   use turbulence, only: gamb,gamt,gams
    use turbulence, only: alpha,iw_model
    IMPLICIT NONE
 !
@@ -76,6 +77,8 @@
 
 !  boyancy frequency squared (1/s^2)
    REALTYPE, intent(in)                :: NN(0:nlev)
+   REALTYPE, intent(in)                :: NNt(0:nlev)
+   REALTYPE, intent(in)                :: NNs(0:nlev)
 
 !  shear-frequency squared (1/s^2)
    REALTYPE, intent(in)                :: SS(0:nlev)
@@ -109,6 +112,8 @@
       P(i)    =  num(i)*( SS(i)+alpha_eff*NN(i) )
       B(i)    = -nuh(i)*NN(i) + gamb(i)
       Pb(i)   = -  B(i)*NN(i)
+      Pt(i)   = -  (-nuh(i)*NNt(i) + gamt(i))*NNt(i)
+      Ps(i)   = -  (-nuh(i)*NNs(i) + gams(i))*NNs(i)
    end do
 
    if ( PRESENT(xP) ) then

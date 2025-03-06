@@ -23,7 +23,7 @@
 
 
 ! !USES:
-   use turbulence, only: an,as,at
+   use turbulence, only: an,as,ab
    use turbulence, only: cmue1,cmue2,gam
    use turbulence, only: cm0
    use turbulence, only: cc1
@@ -112,10 +112,10 @@
         as(i) = min(as(i),asLimitFact*asMax)
 
         dCm  =  d0  +  d1*an(i) +  d2*as(i) + d3*an(i)*as(i) + d4*an(i)*an(i) + d5*as(i)*as(i)
-        nCm  =  n0  +  n1*an(i) +  n2*as(i) + n3*at(i)
+        nCm  =  n0  +  n1*an(i) +  n2*as(i) + n3*ab(i)
         nCmp =  nt0 + nt1*an(i) + nt2*as(i)
 
-        nGam = ( gam0 + gam1*an(i) + gam2*as(i) )*at(i)
+        nGam = ( gam0 + gam1*an(i) + gam2*as(i) )*ab(i)
 
         cmue1(i) =  cm3_inv*nCm /dCm
         cmue2(i) =  cm3_inv*nCmp/dCm
