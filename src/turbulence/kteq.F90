@@ -93,7 +93,7 @@
 
 !  compute diffusivity
    do i=1,nlev
-      avh(i) = num(i)/sig_t
+      avh(i) = nuh(i)/sig_t
     end do
 
    do i=1,nlev-1

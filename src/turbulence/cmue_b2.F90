@@ -5,7 +5,7 @@
 ! !ROUTINE: The non-local, approximate weak-equilibrium stability function\label{sec:cmueB}
 !
 ! !INTERFACE:
-   subroutine cmue_b(nlev)
+   subroutine cmue_b2(nlev)
 !
 ! !DESCRIPTION:
 !  This subroutine is used to update the quantities
@@ -22,9 +22,12 @@
 !  \end{equation}
 
 
+!BD non local stability function with equilibrium aB
+
+
 ! !USES:
    use turbulence, only: an,as,ab
-   use turbulence, only: cmue1,cmue2,gam
+   use turbulence, only: cmue1,cmue2,cgam
    use turbulence, only: cm0
    use turbulence, only: cc1
    use turbulence, only: ct1,ctt
@@ -55,9 +58,10 @@
      integer                 ::   i
      REALTYPE                ::   N,Nt
      REALTYPE                ::   d0,d1,d2,d3,d4,d5
+     REALTYPE                ::   dt0,dt1,dt2,dt3,dt4,dt5
      REALTYPE                ::   n0,n1,n2,n3,nt0,nt1,nt2
      REALTYPE                ::   gam0,gam1,gam2
-     REALTYPE                ::   dCm,nCm,nCmp,nGam,cm3_inv
+     REALTYPE                ::   dCm,dCmp,nCm,nCmp,nGam,cm3_inv
      REALTYPE                ::   asMax,asMaxNum,asMaxDen
      REALTYPE                ::   anMin,anMinNum,anMinDen
 
@@ -68,18 +72,26 @@
      N     =   0.5*cc1
      Nt    =   ct1
 
-     d0    =   36.* N**3. * Nt**2.
-     d1    =   84.*a5*at3 * N**2. * Nt
-     d2    =   9.*(at2**2.-at1**2.) * N**3. - 12.*(a2**2.-3.*a3**2.) * N * Nt**2.
-     d3    =   12.*a5*at3*(a2*at1-3.*a3*at2) * N + 12.*a5*at3*(a3**2.-a2**2.) * Nt
-     d4    =   48.*a5**2.*at3**2. * N
-     d5    =   3.*(a2**2.-3.*a3**2.)*(at1**2.-at2**2.) * N
+     d0   =   36.* N**3. * Nt**2.
+     d1   =   84.*a5*at3 * N**2. * Nt  + 36.*at5 * N**3. * Nt
+     d2   =   9.*(at2**2.-at1**2.) * N**3. - 12.*(a2**2.-3.*a3**2.) * N * Nt**2.
+     d3   =   12.*a5*at3*(a2*at1-3.*a3*at2) * N + 12.*a5*at3*(a3**2.-a2**2.) * Nt       &
+            + 12.*at5*(3.*a3**2.-a2**2.) * N * Nt
+     d4   =   48.*a5**2.*at3**2. * N + 36.*a5*at3*at5 * N**2.
+     d5   =   3.*(a2**2.-3.*a3**2.)*(at1**2.-at2**2.) * N
 
 
-     n0    =   36.*a1 * N**2. * Nt**2.
-     n1    = - 12.*a5*at3*(at1+at2) * N**2. + 8.*a5*at3*(6.*a1-a2-3.*a3) * N * Nt
-     n2    =   9.*a1*(at2**2.-at1**2.) * N**2.
-     n3    =   12.*a5*at4*(3.*(at1+at2) * N**2. + 2.*(a2+3.*a3) * N * Nt)
+     dt0    =   36.* N**3. * Nt**2.
+     dt1    =   84.*a5*at3 * N**2. * Nt
+     dt2    =   9.*(at2**2.-at1**2.) * N**3. - 12.*(a2**2.-3.*a3**2.) * N * Nt**2.
+     dt3    =   12.*a5*at3*(a2*at1-3.*a3*at2) * N + 12.*a5*at3*(a3**2.-a2**2.) * Nt
+     dt4    =   48.*a5**2.*at3**2. * N
+     dt5    =   3.*(a2**2.-3.*a3**2.)*(at1**2.-at2**2.) * N
+
+     n0   =   36.*a1 * N**2. * Nt**2.
+     n1   = - 12.*a5*at3*(at1+at2) * N**2. + 8.*a5*at3*(6.*a1-a2-3.*a3) * N * Nt        &
+            + 36.*a1*at5 * N**2. * Nt
+     n2   =   9.*a1*(at2**2.-at1**2.) * N**2.
 
      nt0   =   12.*at3 * N**3. * Nt
      nt1   =   12.*a5*at3**2.  * N**2.
@@ -111,21 +123,22 @@
 !       clip as at miximum value
         as(i) = min(as(i),asLimitFact*asMax)
 
-        dCm  =  d0  +  d1*an(i) +  d2*as(i) + d3*an(i)*as(i) + d4*an(i)*an(i) + d5*as(i)*as(i)
+        dCm  =  d0  +  d1*an(i) +  d2*as(i) + d3*an(i)*as(i)  + d4*an(i)*an(i)  + d5*as(i)*as(i)
+        dCmp =  dt0 + dt1*an(i) + dt2*as(i) + dt3*an(i)*as(i) + dt4*an(i)*an(i) + dt5*as(i)*as(i)
         nCm  =  n0  +  n1*an(i) +  n2*as(i) + n3*ab(i)
         nCmp =  nt0 + nt1*an(i) + nt2*as(i)
 
-        nGam = ( gam0 + gam1*an(i) + gam2*as(i) )*ab(i)
+        nGam = gam0 + gam1*an(i) + gam2*as(i)
 
         cmue1(i) =  cm3_inv*nCm /dCm
-        cmue2(i) =  cm3_inv*nCmp/dCm
-        gam(i)   =          nGam/dCm
+        cmue2(i) =  cm3_inv*nCmp/dCmp
+        cgam(i)  =          nGam/dCmp
 
      end do
 
 
      return
-     end subroutine cmue_b
+     end subroutine cmue_b2
 !EOC
 
 !-----------------------------------------------------------------------

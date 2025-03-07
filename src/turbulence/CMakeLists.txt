@@ -2,7 +2,9 @@ add_library(turbulence
    algebraiclength.F90
    alpha_mnb.F90
    cmue_a.F90
-   cmue_b.F90
+   cmue_b1.F90
+   cmue_b2.F90
+   cmue_b3.F90
    cmue_c.F90
    cmue_d.F90
    cmue_d_h15.F90

@@ -99,7 +99,7 @@
    REALTYPE, public, dimension(:), allocatable   :: sq_var, sl_var
 
 !  non-dimensional counter-gradient term
-   REALTYPE, public, dimension(:), allocatable   :: gam
+   REALTYPE, public, dimension(:), allocatable   :: cgam
 
 !  alpha_M, alpha_N, and alpha_B
    REALTYPE, public, dimension(:), allocatable   :: as,an,ab
@@ -1068,9 +1068,9 @@
    if (rc /= 0) stop 'init_turbulence: Error allocating (sl_var)'
    sl_var = sl
 
-   allocate(gam(0:nlev),stat=rc)
-   if (rc /= 0) stop 'init_turbulence: Error allocating (gam)'
-   gam = _ZERO_
+   allocate(cgam(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (cgam)'
+   cgam = _ZERO_
 
    allocate(an(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (an)'
@@ -2702,7 +2702,7 @@
       case (weak_Eq_Kb)
 
          call alpha_mnb(nlev,NN,SS)
-         call cmue_b(nlev)
+         call cmue_b1(nlev)
          call do_tke(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
          call do_kb(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
          call do_lengthscale(nlev,dt,depth,u_taus,u_taub,z0s,z0b,h,NN,SS)
@@ -3028,8 +3028,6 @@
 !  at the boundaries is processed.
 !
 ! !USES:
-!   use density,    only: alpha,beta
-!   use meanflow,   only: gravity
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -3043,11 +3041,7 @@
 !
 ! !LOCAL VARIABLES:
    integer                   :: i
-   REALTYPE                  :: x
-
-! temporary
-   REALTYPE                  :: nuh2(0:nlev),num2(0:nlev)
-
+   REALTYPE                  :: x,y
 
 !
 !-----------------------------------------------------------------------
@@ -3056,6 +3050,7 @@
 !  update the turbulent diffusivities
    do i=0,nlev
       x        =  sqrt(tke(i))*L(i)
+      y        =  tke(i)/eps(i)
 !     momentum
       num(i)   =  cmue1(i)*x
 !     heat
@@ -3064,14 +3059,14 @@
       nus(i)   =  cmue2(i)*x
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
-!     Buoyancy Non local term
-      gamb(i)   =  eps(i)*gam(i)
       !TODO: add T'S' here in gamt and gams
 !     non-local heat
-      gamt(i)  = gamb(i)*kt(i)/kb(i)
+      gamt(i)  = cgam(i)*y * kt(i)
 !     non-local salt
-      gams(i)  = gamb(i)*ks(i)/kb(i)
+      gams(i)  = cgam(i)*y * ks(i)
 !      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
+!     Buoyancy Non local term
+      gamb(i)   =  gamt(i) + gams(i)
    end do
 
 
@@ -4147,7 +4142,7 @@
    if (allocated(cmue3)) deallocate(cmue3)
    if (allocated(sq_var)) deallocate(sq_var)
    if (allocated(sl_var)) deallocate(sl_var)
-   if (allocated(gam)) deallocate(gam)
+   if (allocated(cgam)) deallocate(cgam)
    if (allocated(an)) deallocate(an)
    if (allocated(as)) deallocate(as)
    if (allocated(ab)) deallocate(ab)
@@ -4197,7 +4192,7 @@
    LEVEL2 'gamu,gamv',gamu,gamv
    LEVEL2 'gamb,gamt,gams',gamb,gamt,gams
    LEVEL2 'cmue1,cmue2,cmue3',cmue1,cmue2, cmue3
-   LEVEL2 'gam',gam
+   LEVEL2 'cgam',cgam
    LEVEL2 'as,an,at',as,an,at
    LEVEL2 'av aw', av, aw
    LEVEL2 'SPF', SPF

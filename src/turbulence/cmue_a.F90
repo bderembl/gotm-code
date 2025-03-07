@@ -87,7 +87,7 @@
    use turbulence, only: eps
    use turbulence, only: P,B,Px,Pb,epsb
    use turbulence, only: an,as,ab,r
-   use turbulence, only: cmue1,cmue2,gam
+   use turbulence, only: cmue1,cmue2,cgam
    use turbulence, only: cm0
    use turbulence, only: cc1
    use turbulence, only: ct1,ctt
@@ -193,11 +193,11 @@
         nCmp =  nt0 + nt1*an(i) + nt2*as(i)
 
 
-        nGam = ( gam0 + gam1*an(i) + gam2*as(i) )*ab(i)
+        nGam = gam0 + gam1*an(i) + gam2*as(i)
 
         cmue1(i) =  cm3_inv*nCm/dCm
         cmue2(i) =  cm3_inv*nCmp/dCm
-        gam(i)   =  nGam/dCm
+        cgam(i)  =  nGam/dCm
 
      end do
 
