@@ -288,7 +288,7 @@
 !  type of second-order model
    integer, parameter                            :: quasi_Eq=1
    integer, parameter                            :: weak_Eq_Kb_Eq=2
-   integer, parameter                            :: weak_Eq_Kb=3
+   integer, parameter                            :: weak_Eq=3
    integer, parameter                            :: quasi_Eq_H15=4
 
 !  method to solve equation for k_b
@@ -810,7 +810,7 @@
 
    twig => branch%get_child('scnd', 'second-order model')
    call twig%get(scnd_method, 'method', 'method', &
-                   options=(/option(quasi_eq, 'quasi-equilibrium', 'quasi_eq'), option(weak_eq_kb_eq, 'weak equilibrium with algebraic buoyancy variance', 'weak_eq_kb_eq'), option(weak_eq_kb, 'weak equilibrium with equation for buoyancy variance', 'weak_eq_kb'), option(quasi_eq_h15, 'quasi-equilibrium with Langmuir (Harcourt, 2015)', 'quasi_eq_h15')/), default=weak_eq_kb_eq)
+                   options=(/option(quasi_eq, 'quasi-equilibrium', 'quasi_eq'), option(weak_eq_kb_eq, 'weak equilibrium with algebraic buoyancy variance', 'weak_eq_kb_eq'), option(weak_eq, 'weak equilibrium with equation for buoyancy variance', 'weak_eq'), option(quasi_eq_h15, 'quasi-equilibrium with Langmuir (Harcourt, 2015)', 'quasi_eq_h15')/), default=weak_eq_kb_eq)
    call twig%get(kb_method, 'kb_method', 'equation for buoyancy variance', &
                    options=(/option(kb_algebraic, 'algebraic', 'algebraic'), option(kb_dynamic, 'prognostic', 'prognostic'), option(kb_dynamic_ts, 'prognostic_ts', 'prognostic_ts')/), default=1, display=display_advanced)
    call twig%get(epsb_method, 'epsb_method', 'equation for variance destruction', &
@@ -2699,7 +2699,7 @@
          call alpha_mnb(nlev,NN,SS)
          call kolpran(nlev)
 
-      case (weak_Eq_Kb)
+      case (weak_Eq)
 
          call alpha_mnb(nlev,NN,SS)
          call cmue_b1(nlev)
@@ -2841,11 +2841,20 @@
    select case (kb_method)
       case(kb_algebraic)
          call kbalgebraic(nlev)
+
+         if (scnd_method.eq.Weak_Eq) then
+            STDERR 'With non equilibrium kb, it is better to set'
+            STDERR 'kb_method: prognostic_ts'
+            STDERR 'Please change gotmturb.nml accordingly.'
+            STDERR 'Program aborts now in turbulence.F90'
+            stop
+         end if
+
       case(kb_dynamic)
 
-         if (scnd_method.eq.Weak_Eq_Kb) then
+         if (scnd_method.eq.Weak_Eq) then
             STDERR 'With non equilibrium kb, it is better to set'
-            STDERR 'kb_method = prognostic_ts'
+            STDERR 'kb_method: prognostic_ts'
             STDERR 'Please change gotmturb.nml accordingly.'
             STDERR 'Program aborts now in turbulence.F90'
             stop
