@@ -64,6 +64,9 @@
 !  salinity variance and its destruction
    REALTYPE, public, dimension(:), allocatable   :: ks,epss
 
+!  temperature-salinity covariance
+   REALTYPE, public, dimension(:), allocatable   :: tpsp
+
 !  shear and buoyancy production
 !  of tke and buoyancy variance
    REALTYPE, public, dimension(:), allocatable   :: P,B,Pb,Pt,Ps
@@ -982,6 +985,10 @@
    allocate(epss(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (epss)'
    epss = epss_min
+
+   allocate(tpsp(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (tpsp)'
+   tpsp = _ZERO_
 
    allocate(P(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (P)'
@@ -2832,6 +2839,7 @@
 !
 ! !LOCAL VARIABLES:
    integer                   :: i
+   REALTYPE                  :: max_abs_tpsp
 ! !REVISION HISTORY:
 !  Original author(s): Lars Umlauf
 !
@@ -2844,29 +2852,19 @@
 
          if (scnd_method.eq.Weak_Eq) then
             STDERR 'With non equilibrium kb, it is better to set'
+            STDERR 'kb_method: prognostic'
+            STDERR 'or'
             STDERR 'kb_method: prognostic_ts'
             STDERR 'Please change gotmturb.nml accordingly.'
             STDERR 'Program aborts now in turbulence.F90'
             stop
          end if
 
-      case(kb_dynamic)
-
-         if (scnd_method.eq.Weak_Eq) then
-            STDERR 'With non equilibrium kb, it is better to set'
-            STDERR 'kb_method: prognostic_ts'
-            STDERR 'Please change gotmturb.nml accordingly.'
-            STDERR 'Program aborts now in turbulence.F90'
-            stop
-         end if
-
-         call kbeq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
-      case(kb_dynamic_ts)
+      case(kb_dynamic) ! t's'= 0
 
          call kteq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
          call kseq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
 
-         !TODO add T'S' here
          do i=0,nlev
            kb(i) = kt(i) + ks(i)
          enddo
@@ -2876,6 +2874,27 @@
            kb(i) = max(kb(i),kb_min)
          enddo
 
+      case(kb_dynamic_ts)
+
+         call kteq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call kseq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+         call kbeq(nlev,dt,u_taus,u_taub,z0s,z0b,h,NN,SS)
+
+         do i=0,nlev
+           tpsp(i) = kb(i) - kt(i) - ks(i)
+         enddo
+
+         ! Adjust t's' and kb to obey Schwarz inequatlity :
+         ! abs(t's') <= sqrt(t'^2*s'^2)
+         do i=0,nlev
+           max_abs_tpsp = 2*sqrt(kt(i)*ks(i))
+           if (abs(tpsp(i)) > max_abs_tpsp) then
+             tpsp(i) = sign(_ONE_,tpsp(i))*max_abs_tpsp
+             kb(i) = kt(i) + ks(i) + tpsp(i)
+             !  clip at k_min
+             kb(i) = max(kb(i),kb_min)
+           endif
+         enddo
 
       case default
 
@@ -3068,11 +3087,10 @@
       nus(i)   =  cmue2(i)*x
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
-      !TODO: add T'S' here in gamt and gams
 !     non-local heat
-      gamt(i)  = cgam(i)*y * kt(i)
+      gamt(i)  = cgam(i)*y * (kt(i) + 0.5*tpsp(i))
 !     non-local salt
-      gams(i)  = cgam(i)*y * ks(i)
+      gams(i)  = cgam(i)*y * (ks(i) + 0.5*tpsp(i))
 !      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
 !     Buoyancy Non local term
       gamb(i)   =  gamt(i) + gams(i)
@@ -4130,6 +4148,7 @@
    if (allocated(epst)) deallocate(epst)
    if (allocated(ks)) deallocate(ks)
    if (allocated(epss)) deallocate(epss)
+   if (allocated(tpsp)) deallocate(tpsp)
    if (allocated(P)) deallocate(P)
    if (allocated(B)) deallocate(B)
    if (allocated(Pb)) deallocate(Pb)

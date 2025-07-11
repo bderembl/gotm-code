@@ -566,6 +566,7 @@
    call fm%register('epst', 'm2/s5', 'destruction of temperature variance (Buoyancy units)', standard_name='??', dimensions=(/id_dim_zi/), data1d=epsb(0:nlev),category='turbulence/buoyancy')
    call fm%register('ks', 'm2/s4', '(half) salinity variance (Buoyancy units)', standard_name='??', dimensions=(/id_dim_zi/), data1d=ks(0:nlev),category='turbulence/buoyancy')
    call fm%register('epss', 'm2/s5', 'destruction of salinity variance (Buoyancy units)', standard_name='??', dimensions=(/id_dim_zi/), data1d=epss(0:nlev),category='turbulence/buoyancy')
+   call fm%register('tpsp', 'm2/s4', 'temperature-salinity covariance (Buoyancy units)', standard_name='??', dimensions=(/id_dim_zi/), data1d=tpsp(0:nlev),category='turbulence/buoyancy')
    call fm%register('P', 'm2/s3', 'shear production', standard_name='??', dimensions=(/id_dim_zi/), data1d=P(0:nlev),category='turbulence/shear')
    call fm%register('G', 'm2/s3', 'buoyancy production', standard_name='??', dimensions=(/id_dim_zi/), data1d=B(0:nlev),category='turbulence/buoyancy')
    call fm%register('Pb', 'm2/s5', 'production of buoyancy variance', standard_name='??', dimensions=(/id_dim_zi/), data1d=Pb(0:nlev),category='turbulence/buoyancy')
