@@ -93,7 +93,7 @@
 
 !  non-local fluxes
 !  of buoyancy, temperature, salinity
-   REALTYPE, public, dimension(:), allocatable   :: gamb,gamt,gams
+   REALTYPE, public, dimension(:), allocatable   :: gamb,gamh,gams
 
 !  non-dimensional  stability functions
    REALTYPE, public, dimension(:), allocatable   :: cmue1,cmue2, cmue3
@@ -1047,9 +1047,9 @@
    if (rc /= 0) stop 'init_turbulence: Error allocating (gamb)'
    gamb = _ZERO_
 
-   allocate(gamt(0:nlev),stat=rc)
-   if (rc /= 0) stop 'init_turbulence: Error allocating (gamt)'
-   gamt = _ZERO_
+   allocate(gamh(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (gamh)'
+   gamh = _ZERO_
 
    allocate(gams(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (gams)'
@@ -3088,12 +3088,12 @@
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
 !     non-local heat
-      gamt(i)  = cgam(i)*y * (kt(i) + 0.5*tpsp(i))
+      gamh(i)  = cgam(i)*y * (kt(i) + 0.5*tpsp(i))
 !     non-local salt
       gams(i)  = cgam(i)*y * (ks(i) + 0.5*tpsp(i))
 !      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
 !     Buoyancy Non local term
-      gamb(i)   =  gamt(i) + gams(i)
+      gamb(i)   =  gamh(i) + gams(i)
    end do
 
 
@@ -4163,7 +4163,7 @@
    if (allocated(gamu)) deallocate(gamu)
    if (allocated(gamv)) deallocate(gamv)
    if (allocated(gamb)) deallocate(gamb)
-   if (allocated(gamt)) deallocate(gamt)
+   if (allocated(gamh)) deallocate(gamh)
    if (allocated(gams)) deallocate(gams)
    if (allocated(cmue1)) deallocate(cmue1)
    if (allocated(cmue2)) deallocate(cmue2)
@@ -4218,7 +4218,7 @@
    LEVEL2 'P,B,Pb,Px,PSTK',P,B,Pb,Px, PSTK
    LEVEL2 'num,nuh,nus,nucl',num,nuh,nus, nucl
    LEVEL2 'gamu,gamv',gamu,gamv
-   LEVEL2 'gamb,gamt,gams',gamb,gamt,gams
+   LEVEL2 'gamb,gamh,gams',gamb,gamh,gams
    LEVEL2 'cmue1,cmue2,cmue3',cmue1,cmue2, cmue3
    LEVEL2 'cgam',cgam
    LEVEL2 'as,an,at',as,an,at

@@ -548,7 +548,7 @@
    call fm%register('nucl', 'm2/s', 'turbulent diffusivity of momentum down Stokes gradient', standard_name='??', dimensions=(/id_dim_zi/), data1d=nucl(0:nlev),category='turbulence', part_of_state=.true.)
    call fm%register('gamu', 'm2/s2', 'non-local flux of u-momentum', standard_name='??', dimensions=(/id_dim_zi/), data1d=gamu(0:nlev),category='turbulence')
    call fm%register('gamv', 'm2/s2', 'non-local flux of v-momentum', standard_name='??', dimensions=(/id_dim_zi/), data1d=gamv(0:nlev),category='turbulence')
-   call fm%register('gamt', 'K m/s', 'non-local heat flux', standard_name='??', dimensions=(/id_dim_zi/), data1d=gamt(0:nlev),category='turbulence')
+   call fm%register('gamh', 'K m/s', 'non-local heat flux', standard_name='??', dimensions=(/id_dim_zi/), data1d=gamh(0:nlev),category='turbulence')
    call fm%register('gams', 'g/kg m/s', 'non-local salinity flux', standard_name='??', dimensions=(/id_dim_zi/), data1d=gams(0:nlev),category='turbulence')
    call fm%register('Rig', '', 'gradient Richardson number', standard_name='??', dimensions=(/id_dim_zi/), data1d=Rig(0:nlev),category='turbulence')
 

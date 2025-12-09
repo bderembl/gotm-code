@@ -66,7 +66,7 @@
    use turbulence, only: P,B,Pb,Px,PSTK
    use turbulence, only: Pt,Ps   
    use turbulence, only: num,nuh, nucl
-   use turbulence, only: gamb,gamt,gams
+   use turbulence, only: gamb,gamh,gams
    use turbulence, only: alpha,iw_model
    IMPLICIT NONE
 !
@@ -112,7 +112,7 @@
       P(i)    =  num(i)*( SS(i)+alpha_eff*NN(i) )
       B(i)    = -nuh(i)*NN(i) + gamb(i)
       Pb(i)   = -  B(i)*NN(i)
-      Pt(i)   = -  (-nuh(i)*NNt(i) + gamt(i))*NNt(i)
+      Pt(i)   = -  (-nuh(i)*NNt(i) + gamh(i))*NNt(i)
       Ps(i)   = -  (-nuh(i)*NNs(i) + gams(i))*NNs(i)
    end do
 
