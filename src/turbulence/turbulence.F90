@@ -93,7 +93,7 @@
 
 !  non-local fluxes
 !  of buoyancy, temperature, salinity
-   REALTYPE, public, dimension(:), allocatable   :: gamb,gamh,gams
+   REALTYPE, public, dimension(:), allocatable   :: gamb,gamh,gams,gamh_p, gams_p
 
 !  non-dimensional  stability functions
    REALTYPE, public, dimension(:), allocatable   :: cmue1,cmue2, cmue3
@@ -1054,6 +1054,14 @@
    allocate(gams(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (gams)'
    gams = _ZERO_
+
+   allocate(gamh_p(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (gamh_p)'
+   gamh_p = _ZERO_
+
+   allocate(gams_p(0:nlev),stat=rc)
+   if (rc /= 0) stop 'init_turbulence: Error allocating (gams_p)'
+   gams_p = _ZERO_
 
    allocate(cmue1(0:nlev),stat=rc)
    if (rc /= 0) stop 'init_turbulence: Error allocating (cmue1)'
@@ -3088,17 +3096,61 @@
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
 !     non-local heat
-      gamh(i)  = cgam(i)*y * (kt(i) + 0.5*tpsp(i))
+      gamh_p(i)= cgam(i)*y * (kt(i) + 0.5*tpsp(i))
 !     non-local salt
-      gams(i)  = cgam(i)*y * (ks(i) + 0.5*tpsp(i))
-!      gams(i)  = eps(i)*gam(i)/(-beta(i)*gravity)
+      gams_p(i)= cgam(i)*y * (ks(i) + 0.5*tpsp(i))
 !     Buoyancy Non local term
-      gamb(i)   =  gamh(i) + gams(i)
+      gamb(i)   =  gamh_p(i) + gams_p(i)
    end do
 
+   call adjust_gamma(nlev)
 
    return
    end subroutine kolpran
+!EOC
+
+!-----------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Adjust unit of non local term\label{sec:adjust_gamma}
+!
+! !INTERFACE:
+   subroutine adjust_gamma(nlev)
+!
+! !DESCRIPTION: The Non-local term $Gamma$ is computed in buoyancy units to
+! simplify the formalism. We need to multiply the heat non local term and
+! salinity non local term by 1/(alpha g) and -1/(beta g) respectivelly to use it
+! in the heat and salt equations
+! $\Gamma_h = \frac{\Gamma'_h}{\alpha g}$ and $\Gamma_s = \frac{\Gamma'_s}{-\beta g}$
+!
+! !USES:
+   use density,      only: alpha
+   use density,      only: beta
+   use meanflow,     only: gravity
+
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   integer, intent(in)       :: nlev
+!
+! !REVISION HISTORY:
+!  Original author(s): Bruno Deremble
+!
+!EOP
+!
+! !LOCAL VARIABLES:
+   integer                   :: i
+!
+!-----------------------------------------------------------------------
+!BOC
+!
+   do i=0,nlev
+      gamh(i) = gamh_p(i)/(alpha(i)*gravity)
+      gams(i) = gams_p(i)/(-beta(i)*gravity)
+   end do
+
+   return
+   end subroutine adjust_gamma
 !EOC
 
 
@@ -4165,6 +4217,8 @@
    if (allocated(gamb)) deallocate(gamb)
    if (allocated(gamh)) deallocate(gamh)
    if (allocated(gams)) deallocate(gams)
+   if (allocated(gamh_p)) deallocate(gamh_p)
+   if (allocated(gams_p)) deallocate(gams_p)
    if (allocated(cmue1)) deallocate(cmue1)
    if (allocated(cmue2)) deallocate(cmue2)
    if (allocated(cmue3)) deallocate(cmue3)

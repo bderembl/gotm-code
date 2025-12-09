@@ -131,7 +131,6 @@
    REALTYPE                  :: AdvTup,AdvTdw
    REALTYPE                  :: Lsour(0:nlev)
    REALTYPE                  :: Qsour(0:nlev)
-   REALTYPE                  :: gamh_dim(0:nlev)
    REALTYPE                  :: z
 !-----------------------------------------------------------------------
 !BOC
@@ -173,10 +172,6 @@
    end do
 
 
-!     compute dimentional non-local term
-   do i=0,nlev
-      gamh_dim(i) = gamh(i)/(alpha(i)*gravity)
-   end do
 
 !  add contributions to source term
    Lsour=_ZERO_
@@ -190,7 +185,7 @@
 
    do i=1,nlev
 !     from non-local turbulence
-      Qsour(i) = Qsour(i) - ( gamh_dim(i) - gamh_dim(i-1) )/h(i)
+      Qsour(i) = Qsour(i) - ( gamh(i) - gamh(i-1) )/h(i)
    end do
 
 !  ... and from lateral advection
