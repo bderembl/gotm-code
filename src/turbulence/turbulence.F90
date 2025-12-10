@@ -3062,8 +3062,17 @@
 ! have been computed using the correct boundary conditions. No
 ! special treatment of $\nu_t$, $\nu^B_t$, and $\tilde{\Gamma}_B$
 !  at the boundaries is processed.
+
+! The Non-local term $Gamma$ is computed in buoyancy units to
+! simplify the formalism. We need to multiply the heat non local term and
+! salinity non local term by 1/(alpha g) and -1/(beta g) respectivelly to use it
+! in the heat and salt equations
+! $\Gamma_h = \frac{\Gamma'_h}{\alpha g}$ and $\Gamma_s = \frac{\Gamma'_s}{-\beta g}$
 !
 ! !USES:
+   use density,      only: alpha
+   use density,      only: beta
+   use meanflow,     only: gravity
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -3100,59 +3109,19 @@
 !     non-local salt
       gams_p(i)= cgam(i)*y * (ks(i) + 0.5*tpsp(i))
 !     Buoyancy Non local term
-      gamb(i)   =  gamh_p(i) + gams_p(i)
+      gamb(i)  =  gamh_p(i) + gams_p(i)
    end do
 
-   call adjust_gamma(nlev)
-
-   return
-   end subroutine kolpran
-!EOC
-
-!-----------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Adjust unit of non local term\label{sec:adjust_gamma}
-!
-! !INTERFACE:
-   subroutine adjust_gamma(nlev)
-!
-! !DESCRIPTION: The Non-local term $Gamma$ is computed in buoyancy units to
-! simplify the formalism. We need to multiply the heat non local term and
-! salinity non local term by 1/(alpha g) and -1/(beta g) respectivelly to use it
-! in the heat and salt equations
-! $\Gamma_h = \frac{\Gamma'_h}{\alpha g}$ and $\Gamma_s = \frac{\Gamma'_s}{-\beta g}$
-!
-! !USES:
-   use density,      only: alpha
-   use density,      only: beta
-   use meanflow,     only: gravity
-
-   IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-   integer, intent(in)       :: nlev
-!
-! !REVISION HISTORY:
-!  Original author(s): Bruno Deremble
-!
-!EOP
-!
-! !LOCAL VARIABLES:
-   integer                   :: i
-!
-!-----------------------------------------------------------------------
-!BOC
-!
+!  Adjust units of the non-local terms for the temperature and salinity
+!  equations
    do i=0,nlev
       gamh(i) = gamh_p(i)/(alpha(i)*gravity)
       gams(i) = gams_p(i)/(-beta(i)*gravity)
    end do
 
    return
-   end subroutine adjust_gamma
+   end subroutine kolpran
 !EOC
-
 
 !-----------------------------------------------------------------------
 !BOP
