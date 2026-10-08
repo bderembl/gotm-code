@@ -88,10 +88,10 @@
 !  algebraic Reynolds stress and flux models.
    REALTYPE, public, dimension(:), allocatable         :: nucl
 
-!  non-local fluxes of momentum
+!  non-gradient fluxes of momentum
    REALTYPE, public, dimension(:), allocatable   :: gamu,gamv
 
-!  non-local fluxes
+!  non-gradient fluxes
 !  of buoyancy, temperature, salinity
    REALTYPE, public, dimension(:), allocatable   :: gamb,gamh,gams,gamh_p, gams_p
 
@@ -175,6 +175,7 @@
    REALTYPE, public                              :: epst_min
    REALTYPE, public                              :: ks_min
    REALTYPE, public                              :: epss_min
+   REALTYPE, public                              :: gam_max
 
 !  the 'generic' namelist
    logical                                       :: compute_param
@@ -386,7 +387,7 @@
                             compute_c3,ri_st,length_lim,galp,  &
                             const_num,const_nuh,k_min,eps_min, &
                             kb_min,epsb_min,kt_min,epst_min,   &
-                            ks_min,epss_min
+                            ks_min,epss_min, gam_max
 
    namelist /generic/       compute_param,gen_m,gen_n,gen_p,   &
                             cpsi1,cpsi2,cpsi3minus,cpsi3plus,cpsix,cpsi4, &
@@ -472,12 +473,13 @@
    const_nuh=5.0e-4
    k_min=1.0e-8
    eps_min=1.0e-12
-   kb_min=1.0e-14
-   epsb_min=1.0e-16
-   kt_min=1.0e-14
-   epst_min=1.0e-16
-   ks_min=1.0e-14
-   epss_min=1.0e-16
+   kb_min=1.0e-16
+   epsb_min=1.0e-20
+   kt_min=1.0e-16
+   epst_min=1.0e-20
+   ks_min=1.0e-16
+   epss_min=1.0e-20
+   gam_max=1.0 ! a bit above equilibrium value(=0.28)
 
 !  the 'generic' namelist
    compute_param=.false.
@@ -717,6 +719,8 @@
                    minimum=0._rk,default=1.e-14_rk)
    call twig%get(epss_min, 'epss_min', 'minimum salinity variance destruction rate', 'm^2/s^5', &
                    minimum=0._rk,default=1.e-16_rk)
+   call twig%get(gam_max, 'gam_max', 'cap factor on non-gradient Gamma term. Should be above equilibrium value (=0.28)', '-', &
+                   minimum=0._rk,default=1.0_rk)
 
    twig => branch%get_child('generic', 'generic length scale (GLS) model')
    call twig%get(compute_param, 'compute_param', 'compute the model parameters', &
@@ -3063,9 +3067,9 @@
 ! special treatment of $\nu_t$, $\nu^B_t$, and $\tilde{\Gamma}_B$
 !  at the boundaries is processed.
 
-! The Non-local term $Gamma$ is computed in buoyancy units to
-! simplify the formalism. We need to multiply the heat non local term and
-! salinity non local term by 1/(alpha g) and -1/(beta g) respectivelly to use it
+! The Non-gradient term $Gamma$ is computed in buoyancy units to
+! simplify the formalism. We need to multiply the heat non-gradient term and
+! salinity non-gradient term by 1/(alpha g) and -1/(beta g) respectivelly to use it
 ! in the heat and salt equations
 ! $\Gamma_h = \frac{\Gamma'_h}{\alpha g}$ and $\Gamma_s = \frac{\Gamma'_s}{-\beta g}$
 !
@@ -3087,7 +3091,7 @@
 ! !LOCAL VARIABLES:
    integer                   :: i
    REALTYPE                  :: x,y
-
+   REALTYPE                  :: gamb_tmp, xsc
 !
 !-----------------------------------------------------------------------
 !BOC
@@ -3104,15 +3108,23 @@
       nus(i)   =  cmue2(i)*x
 !     momentum down Stokes gradient
       nucl(i)  =  cmue3(i)*x
-!     non-local heat
+!     non-gradient heat
       gamh_p(i)= cgam(i)*y * (kt(i) + 0.5*tpsp(i))
-!     non-local salt
+!     non-gradient salt
       gams_p(i)= cgam(i)*y * (ks(i) + 0.5*tpsp(i))
-!     Buoyancy Non local term
+
+      ! weak-equilibrium budget: Gamma_b <= gam_max*eps
+      ! but done here with tanh to preserve the shape of the gamma curve
+      gamb_tmp = gamh_p(i) + gams_p(i)
+      xsc = gam_max*eps(i)*tanh(gamb_tmp/(gam_max*eps(i))) / max(gamb_tmp, 1e-10)
+      gamh_p(i) = gamh_p(i)*xsc
+      gams_p(i) = gams_p(i)*xsc
+
+!     Buoyancy Non gradient term
       gamb(i)  =  gamh_p(i) + gams_p(i)
    end do
 
-!  Adjust units of the non-local terms for the temperature and salinity
+!  Adjust units of the non-gradient terms for the temperature and salinity
 !  equations
    do i=0,nlev
       gamh(i) = gamh_p(i)/(alpha(i)*gravity)
