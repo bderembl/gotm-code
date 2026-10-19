@@ -108,7 +108,7 @@
         asMaxDen  = d2*n0 + (d2*n1+d3*n0)*an(i) + d3*n1*an(i)*an(i)
         asMax     = asMaxNum / asMaxDen
 
-!       clip as at miximum value
+!       clip as at maximum value
         as(i) = min(as(i),asLimitFact*asMax)
 
         dCm  =  d0  +  d1*an(i) +  d2*as(i) + d3*an(i)*as(i) + d4*an(i)*an(i) + d5*as(i)*as(i)
@@ -120,7 +120,8 @@
         cmue1(i) =  cm3_inv*nCm /dCm
         cmue2(i) =  cm3_inv*nCmp/dCm
         cgam(i)  =          nGam/dCm
-
+        ! in extreme situations, cgam can be negative
+        cgam(i)  = max(cgam(i),0.0)
      end do
 
 

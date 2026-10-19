@@ -3091,10 +3091,13 @@
 ! !LOCAL VARIABLES:
    integer                   :: i
    REALTYPE                  :: x,y
-   REALTYPE                  :: gamb_tmp, xsc
+   REALTYPE                  :: gamb_tmp, xsc, xcap
+   REALTYPE                  :: alpha_min
 !
 !-----------------------------------------------------------------------
 !BOC
+
+   alpha_min = 1e-6
 
 !  update the turbulent diffusivities
    do i=0,nlev
@@ -3116,7 +3119,13 @@
       ! weak-equilibrium budget: Gamma_b <= gam_max*eps
       ! but done here with tanh to preserve the shape of the gamma curve
       gamb_tmp = gamh_p(i) + gams_p(i)
-      xsc = gam_max*eps(i)*tanh(gamb_tmp/(gam_max*eps(i))) / max(gamb_tmp, 1e-10)
+
+      ! xsc = gam_max*eps(i)*tanh(gamb_tmp/(gam_max*eps(i))) / max(gamb_tmp, 1e-10)
+      xcap = gam_max*eps(i)
+      x = gamb_tmp/max(xcap, 1e-30)
+      xsc = 1.0
+      if (abs(x) > 1e-8) xsc = tanh(x)/x
+
       gamh_p(i) = gamh_p(i)*xsc
       gams_p(i) = gams_p(i)*xsc
 
@@ -3127,7 +3136,7 @@
 !  Adjust units of the non-gradient terms for the temperature and salinity
 !  equations
    do i=0,nlev
-      gamh(i) = gamh_p(i)/(alpha(i)*gravity)
+      gamh(i) = gamh_p(i)/(SIGN( MAX( ABS(alpha(i)), alpha_min ), alpha(i) )*gravity)
       gams(i) = gams_p(i)/(-beta(i)*gravity)
    end do
 
